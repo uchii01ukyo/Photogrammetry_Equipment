@@ -37,7 +37,6 @@ def main():
             os.makedirs(sub_dir)
 
         # capture
-        print('Here')
         for ID, capture in enumerate(captures):
             print('IN')
             ret, frame = capture.read()
