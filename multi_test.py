@@ -6,12 +6,13 @@ import time
 import threading
 import multiprocessing
 
-
-def main():
+# How to use multithread
+def main_multithread():
+    time_start=time.time()
     print("start")
-    t1 = threading.Thread(target=camera_capture, name="camera1", args=(1,))
-    t2 = threading.Thread(target=camera_capture, name="camera2", args=(2,))
-    t3 = threading.Thread(target=camera_capture, name="camera3", args=(3,))
+    t1 = threading.Thread(target=camera_capture, name="camera1", args=(1,time_start,))
+    t2 = threading.Thread(target=camera_capture, name="camera2", args=(2,time_start,))
+    t3 = threading.Thread(target=camera_capture, name="camera3", args=(3,time_start,))
     t1.start()
     t2.start()
     t3.start()
@@ -20,35 +21,40 @@ def main():
     t3.join()
     print("end")
 
-def main_multiprocess():
+# How to use multithread
+def main_multithread_loop():
     print("start")
-    p1 = multiprocessing.Process(target=camera_capture, args=(1,))
-    p2 = multiprocessing.Process(target=camera_capture, args=(2,))
-    p3 = multiprocessing.Process(target=camera_capture, args=(3,))
+    time_start=time.time()
+    thread=[]
+    loop_times=20
+    for num in range(loop_times):
+        thread.append(threading.Thread(target=camera_capture, name="camera" + str(num), args=(num,time_start,)))
+        thread[num].start()
+    for num in range(loop_times):
+        thread[num].join()
+    print("end")
+
+# How to use multiprocess
+def main_multiprocess():
+    time_start=time.time()
+    print("start")
+    p1 = multiprocessing.Process(target=camera_capture, args=(1,time_start,))
+    p2 = multiprocessing.Process(target=camera_capture, args=(2,time_start,))
+    p3 = multiprocessing.Process(target=camera_capture, args=(3,time_start,))
     p1.start()
     p2.start()
     p3.start()
 
-    """
-    while True:
-        key = cv2.waitKey(10)
-        if key == 'c':
-            print("IN")
-        elif key == 27:
-            break
-    print("end")
-    """
 
-def camera_capture(ID):
+def camera_capture(ID, time_start):
     n = 0
-    print(ID)
     while True:
-        key = cv2.waitKey(10)
-        if key == 'c':
-            print("ID: " + ID + ", Times: " + n)
-            n += 1
-        elif key == 27:
+        if keyboard.read_key() == "c":
+            time_now=time.time()-time_start
+            print("ID:" + str(ID) + "-> " + str(time_now) + " sec")
+            time.sleep(2)
+        elif keyboard.read_key() == "esc":
             break
 
 if __name__ == '__main__':
-    main_multiprocess()
+    main_multithread_loop()
