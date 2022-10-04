@@ -1,6 +1,6 @@
 import cv2
  
-camera = cv2.VideoCapture(0)
+camera = cv2.VideoCapture(1)
  
 # Save setting
 fps = int(camera.get(cv2.CAP_PROP_FPS))
