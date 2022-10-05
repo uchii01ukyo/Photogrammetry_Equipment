@@ -46,12 +46,17 @@ def main_multithread():
             f.close()
             break
         time.sleep(0.1)
-
-    UDP_receive("connected", "All connected")
-
     print("-----------------")
+
     print("---> capture = c, exit = esc")
     
+    while True:
+        if keyboard.read_key() == "c":
+            UDP_send('c')
+        elif keyboard.read_key() == "esc":
+            UDP_send('esc')
+            break
+
     for ID in captures_ID:
         thread[ID].join()
     

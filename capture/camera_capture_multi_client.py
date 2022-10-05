@@ -12,7 +12,7 @@ def main_multithread():
 
     # UDP
     UDP_initial()
-    UDP_receive('open')
+    received=UDP_receive('open')
     
     # make main directory
     dir = "./capture"
@@ -47,10 +47,18 @@ def main_multithread():
             break
         time.sleep(0.1)
     print("-----------------")
-
-    UDP_send("connect")
-    print("All connected")
+    
     print("---> capture = c, exit = esc")
+    while True:
+        received=UDP_receive('c')
+        f = open('waiting.txt', 'w')
+        f.write(received)
+        if received == "esc":
+            break
+        time.sleep(1)
+        f = open('waiting.txt', 'w')
+        f.close()
+
     
     for ID in captures_ID:
         thread[ID].join()
@@ -74,15 +82,18 @@ def camera_capture(ID, captures, time_start):
     wait_setting()
 
     n=0
-    while True:
-        if keyboard.read_key() == "c":
+    while True: 
+        f = open('waiting.txt', 'r')
+        data = f.read()
+        f.close()
+        if data=='c':
             ret, frame = captures[ID].read()
             cv2.imwrite('{}_{}_{}.{}'.format('camera', ID, n, 'jpg'), frame)
             time_now=time.time()-time_start
             print("ID: " + str(ID) + "-> capture (" + str(time_now) + " sec)")
             n += 1
             time.sleep(2)
-        elif keyboard.read_key() == "esc":
+        elif data == 'esc':
             break
     captures[ID].release()
 
@@ -154,6 +165,7 @@ def UDP_receive(command, comment):
             if data.decode() == command:
                 print(comment)
                 break
+    return data.decode()
 
 
 if __name__ == '__main__':
