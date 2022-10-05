@@ -4,10 +4,15 @@ import os
 import time
 import threading
 import keyboard
+import socket
 
 captures_ID = []
 
 def main_multithread():
+
+    # UDP
+    UDP_initial()
+    UDP_send("open")
 
     # make main directory
     dir = "./capture"
@@ -25,30 +30,53 @@ def main_multithread():
     f = open("waiting.txt","w")
     f.close()
 
+    # main-connection
     print("Connecting ... " + str(len(captures_ID)))
     print("---connection---")
     for ID in captures_ID:
-        th=threading.Thread(target=camera_connect, name="camera" + str(ID), args=(ID,captures,))
+        th=threading.Thread(target=camera_capture, name="camera" + str(ID), args=(ID,captures,time_start,))
         thread[ID]=th
         thread[ID].start()
+
+    while True:
+        rows=sum([1 for _ in open('waiting.txt')])
+        if rows==len(captures_ID):
+            f = open('waiting.txt', 'w')
+            f.write('OK')
+            f.close()
+            break
+        time.sleep(0.1)
+
+    UDP_receive("connected", "All connected")
+
+    print("-----------------")
+    print("---> capture = c, exit = esc")
+    
     for ID in captures_ID:
         thread[ID].join()
-    print("----------------")
+    
+    print("All completed successfully!")
 
 
-def camera_connect(ID, captures):
+def camera_capture(ID, captures, time_start):
+    
     captures[ID] = cv2.VideoCapture(ID) #(ID,cv2.CAP_DSHOW) 
     if captures[ID].isOpened():
         print("ID: " + str(ID) + " -> Connected")
     else:
         print("ID: " + str(ID) + " -> Failed")
 
+    f = open('waiting.txt', 'a')
+    f.write(str(ID) + '\n')
+    f.close()
 
-def camera_capture(ID, time_start):
+    # wait
+    wait_setting()
+
     n=0
     while True:
         if keyboard.read_key() == "c":
-            ret, frame = cap.read()
+            ret, frame = captures[ID].read()
             cv2.imwrite('{}_{}_{}.{}'.format('camera', ID, n, 'jpg'), frame)
             time_now=time.time()-time_start
             print("ID: " + str(ID) + "-> capture (" + str(time_now) + " sec)")
@@ -56,7 +84,7 @@ def camera_capture(ID, time_start):
             time.sleep(2)
         elif keyboard.read_key() == "esc":
             break
-    cap.release()
+    captures[ID].release()
 
 
 def detection():
@@ -74,8 +102,61 @@ def detection():
     print("---------------")
 
 
+def wait_setting():
+    while True: 
+        f = open('waiting.txt', 'r')
+        data = f.read()
+        f.close()
+        if(data=='OK'):
+            break
+        time.sleep(0.1) # waiting
+
+def UDP_initial():
+    global udpSock, Client_Addr, UDP_SERIAL_Addr, UDP_BUFSIZE
+
+    # $ipconfig/all or $ifconfig
+    Client_IP = "192.168.11.6"
+    Client_Port = 50000
+    Client_Addr = (Client_IP, Client_Port)
+    UDP_SERIAL_IP = "192.168.11.8"
+    UDP_SERIAL_Port = 50000
+    UDP_SERIAL_Addr = (UDP_SERIAL_IP, UDP_SERIAL_Port)
+    UDP_BUFSIZE = 1024
+
+    udpSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udpSock.bind(Client_Addr)
+    udpSock.settimeout(1)
+    
+
+def UDP_send(command):
+    print(command)
+    udpSock.sendto(command.encode('utf-8'), UDP_SERIAL_Addr)
+
+    while True:
+        try:
+            data, addr = udpSock.recvfrom(UDP_BUFSIZE)
+        except:
+            pass
+        else:
+            if data.decode() == 'ok':
+                print("-> send OK")
+                break
+
+
+def UDP_receive(command, comment):
+    while True:
+        try:
+            data, addr = udpSock.recvfrom(UDP_BUFSIZE)
+        except:
+            print("NG")
+            pass
+        else:
+            if data.decode() == command:
+                print(comment)
+                break
+
+
 if __name__ == '__main__':
-    #main_simple()
     main_multithread()
 
 
