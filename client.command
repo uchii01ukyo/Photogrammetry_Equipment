@@ -1,3 +1,2 @@
-cd /Users/uchiiukyo/Photogrammetry_Equipment
-chmod u+x client.command
-python client.py
+cd /Users/uchiiukyo/Photogrammetry_Equipment/capture
+python camera_capture_multi_client.py

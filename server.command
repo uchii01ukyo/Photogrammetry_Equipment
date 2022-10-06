@@ -1,2 +1,2 @@
-cd /Users/uchiiukyo/Photogrammetry_Equipment
-python server.py
+cd /Users/uchiiukyo/Photogrammetry_Equipment/capture
+python camera_capture_multi_server.py

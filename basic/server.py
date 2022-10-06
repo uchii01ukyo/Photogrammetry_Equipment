@@ -1,25 +1,37 @@
+# coding: UTF-8
 import socket
+#from socket import *
 
-bind_host="0.0.0.0"
-bind_port=50000
+def main():
 
-server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind((bind_host, bind_port))
-server.listen(5)
-print("host: "+bind_host)
-print("port: "+str(bind_port))
+    # $ipconfig/all or $ifconfig
+    Client_IP = "192.168.11.6"
+    Client_Port = 50000
+    Client_Addr = (Client_IP, Client_Port)
+    UDP_SERIAL_IP = "192.168.11.8"
+    UDP_SERIAL_Port = 50000
+    UDP_SERIAL_Addr = (UDP_SERIAL_IP, UDP_SERIAL_Port)
+    UDP_BUFSIZE = 1024
 
-while True:
-    client, addr=server.accept()
-    print("from:"+ addr[0]+" "+str(addr[1]))
+    udpSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udpSock.bind(Client_Addr)
+    udpSock.settimeout(1)
+
+    command = "Hello"
+    print(command)
+    udpSock.sendto(command.encode('utf-8'), UDP_SERIAL_Addr)
+
     while True:
-        print("waiting for his response...")
-        rec=client.recv(1024)
-        print(">"+rec.decode('utf-8'))
+        try:
+            data, addr = udpSock.recvfrom(UDP_BUFSIZE)
+        except:
+            pass
+        else:
+            if data.decode() == "ok":
+                print("-> OK")
+                break
+    print("end")
 
-        res=input()
 
-        client.send(res.encode('utf-8'))
-        if len(rec)==0:
-            client.close()
-            break
+if __name__ == '__main__':
+    main()

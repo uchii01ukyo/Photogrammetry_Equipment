@@ -3,7 +3,7 @@ import cv2
 import os
 import time
 import threading
-import keyboard
+#import keyboard
 import socket
 
 captures_ID = []
@@ -12,7 +12,8 @@ def main_multithread():
 
     # UDP
     UDP_initial()
-    received=UDP_receive('open')
+    print("wait when main device open")
+    received=UDP_receive('open','opened')
     
     # make main directory
     dir = "./capture"
@@ -48,16 +49,28 @@ def main_multithread():
         time.sleep(0.1)
     print("-----------------")
     
-    print("---> capture = c, exit = esc")
+    print("Connected.")
+    print("This device is UDP client. Main device. Check on the main device.")
+
+    f = open('waiting.txt', 'w')
     while True:
-        received=UDP_receive('c')
-        f = open('waiting.txt', 'w')
+        print("1")
+        received=UDP_receive('c','-> capture')
+        print("2")
         f.write(received)
+        f.close()
+        print("3")
+        print("print=" + received)
         if received == "esc":
             break
-        time.sleep(1)
-        f = open('waiting.txt', 'w')
-        f.close()
+        time.sleep(0.5)
+        # clear
+        print("4")
+        received=""
+        f.write(received)
+        f.close
+        print("5")
+        print("print=" + received)
 
     
     for ID in captures_ID:
@@ -82,10 +95,11 @@ def camera_capture(ID, captures, time_start):
     wait_setting()
 
     n=0
+    f = open('waiting.txt', 'r')
     while True: 
-        f = open('waiting.txt', 'r')
         data = f.read()
         f.close()
+        print("read=" + data)
         if data=='c':
             ret, frame = captures[ID].read()
             cv2.imwrite('{}_{}_{}.{}'.format('camera', ID, n, 'jpg'), frame)
@@ -102,7 +116,7 @@ def detection():
     ID=1
     print("---detection---")
     while True:
-        capture = cv2.VideoCapture(ID,cv2.CAP_DSHOW)
+        capture = cv2.VideoCapture(ID) #cv2.CAP_DSHOW
         if capture.isOpened():
             print("ID: " + str(ID) + " -> Found")
             captures_ID.append(ID)
@@ -159,12 +173,14 @@ def UDP_receive(command, comment):
         try:
             data, addr = udpSock.recvfrom(UDP_BUFSIZE)
         except:
-            print("NG")
             pass
         else:
             if data.decode() == command:
                 print(comment)
-                break
+                udpSock.sendto("ok".encode('utf-8'), addr)
+                print("-> OK")
+            break
+
     return data.decode()
 
 

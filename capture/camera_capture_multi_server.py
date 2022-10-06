@@ -56,6 +56,7 @@ def main_multithread():
         elif keyboard.read_key() == "esc":
             UDP_send('esc')
             break
+        time.sleep(2)
 
     for ID in captures_ID:
         thread[ID].join()
@@ -120,10 +121,10 @@ def UDP_initial():
     global udpSock, Client_Addr, UDP_SERIAL_Addr, UDP_BUFSIZE
 
     # $ipconfig/all or $ifconfig
-    Client_IP = "192.168.11.6"
+    Client_IP = "192.168.11.8"
     Client_Port = 50000
     Client_Addr = (Client_IP, Client_Port)
-    UDP_SERIAL_IP = "192.168.11.8"
+    UDP_SERIAL_IP = "192.168.11.6"
     UDP_SERIAL_Port = 50000
     UDP_SERIAL_Addr = (UDP_SERIAL_IP, UDP_SERIAL_Port)
     UDP_BUFSIZE = 1024
@@ -144,7 +145,7 @@ def UDP_send(command):
             pass
         else:
             if data.decode() == 'ok':
-                print("-> send OK")
+                print("-> OK")
                 break
 
 
@@ -153,12 +154,13 @@ def UDP_receive(command, comment):
         try:
             data, addr = udpSock.recvfrom(UDP_BUFSIZE)
         except:
-            print("NG")
             pass
         else:
             if data.decode() == command:
                 print(comment)
-                break
+                udpSock.sendto("ok".encode('utf-8'), addr)
+                print("-> OK")
+            break
 
 
 if __name__ == '__main__':
