@@ -1,5 +1,6 @@
 # Photogrammetry
-Proposal for 3D recording of mechanical experiments using photogrammetry.
+Proposal for 3D recording of physical experiments using photogrammetry.
+(ex: physical experiments = experiments of soil fracture behavior) 
   
 ### What Photogrammetry?
 A method of photographing a subject from various angles and integrating the digital images to create a three-dimensional 3DCG model.
@@ -20,6 +21,10 @@ A method of photographing a subject from various angles and integrating the digi
   ... Control some usb-camera using multi_thread + continuous shooting  
 + **camera_capture_multi_sametiming.py**  
   ... Control some usb-camera using multi_thread + shoot same timing of all  
++ **camera_capture_multi_server.py**  
+  ... Control some usb-camera using multi_thread + Linkage of two PCs via UDP (server)  
++ **camera_capture_multi_client.py**  
+  ... Control some usb-camera using multi_thread + Linkage of two PCs via UDP (client)  
   
 ### movie
 + **camera_movie_single.py**  
@@ -29,3 +34,6 @@ A method of photographing a subject from various angles and integrating the digi
   
 ## System
 In progress...
+  
+## Author  
+Uchii Ukyo (https://github.com/uchii01ukyo)
