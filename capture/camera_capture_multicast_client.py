@@ -1,10 +1,13 @@
 # coding: UTF-8
+from __future__ import print_function
 import cv2
 import os
 import time
 import threading
 #import keyboard
 import socket
+from contextlib import closing
+
 
 captures_ID = []
 
@@ -191,50 +194,43 @@ def wait_setting():
         time.sleep(0.1) # waiting
 
 def UDP_initial():
-    global udpSock, Client_Addr, UDP_SERIAL_Addr, UDP_BUFSIZE
+    global local_address, multicast_group, port, bufsize, sock
 
     # $ipconfig/all or $ifconfig
-    Client_IP = "100.64.1.32"#'172.23.3.97' #"192.168.11.6"
-    Client_Port = 50000
-    Client_Addr = (Client_IP, Client_Port)
-    UDP_SERIAL_IP = "100.64.1.42"#"172.23.3.96"
-    UDP_SERIAL_Port = 50000
-    UDP_SERIAL_Addr = (UDP_SERIAL_IP, UDP_SERIAL_Port)
-    UDP_BUFSIZE = 1024
+    local_address   = '100.64.1.32'
+    multicast_group = '239.255.0.1'
+    port = 4000
+    bufsize = 4096
 
-    udpSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    udpSock.bind(Client_Addr)
-    udpSock.settimeout(1)
-    
+    sock=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind(('', port))
+    sock.setsockopt(socket.IPPROTO_IP,
+                    socket.IP_ADD_MEMBERSHIP,
+                    socket.inet_aton(multicast_group) + socket.inet_aton(local_address))
 
-def UDP_send(command):
-    print(command)
-    udpSock.sendto(command.encode('utf-8'), UDP_SERIAL_Addr)
-
-    while True:
-        try:
-            data, addr = udpSock.recvfrom(UDP_BUFSIZE)
-        except:
-            pass
-        else:
-            if data.decode() == 'ok':
-                print("-> send OK")
-                break
+    '''
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_DGRAM)) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(('', port))
+        sock.setsockopt(socket.IPPROTO_IP,
+                        socket.IP_ADD_MEMBERSHIP,
+                        socket.inet_aton(multicast_group) + socket.inet_aton(local_address))
+    '''
 
 
 def UDP_receive(command, comment):
     while True:
         try:
-            data, addr = udpSock.recvfrom(UDP_BUFSIZE)
+            print("IN")
+            data=sock.recv(bufsize)
+            print("recv data: " + data.decode())
         except:
             pass
         else:
             if data.decode() == command:
                 print(comment)
-                udpSock.sendto("ok".encode('utf-8'), addr)
-                print("-> OK")
             break
-
     return data.decode()
 
 
