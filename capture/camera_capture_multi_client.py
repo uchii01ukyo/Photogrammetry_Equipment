@@ -23,6 +23,9 @@ def main_multithread():
     # camera detection
     detection()
 
+    # camera selection
+    selection()
+
     # initial
     time_start=time.time()
     thread=[0]*(len(captures_ID)+1)
@@ -33,7 +36,7 @@ def main_multithread():
 
     # main-connection
     print("Connecting ... " + str(len(captures_ID)))
-    print("---connection---")
+    print("--- 3. connection ---")
     for ID in captures_ID:
         th=threading.Thread(target=camera_capture, name="camera" + str(ID), args=(ID,captures,time_start,))
         thread[ID]=th
@@ -47,35 +50,31 @@ def main_multithread():
             f.close()
             break
         time.sleep(0.1)
-    print("-----------------")
+    print("-------------------")
     
     print("Connected.")
     print("This device is UDP client. Main device. Check on the main device.")
 
     f = open('waiting.txt', 'w')
     while True:
-        print("1")
         received=UDP_receive('c','-> capture')
-        print("2")
         f.write(received)
         f.close()
-        print("3")
         print("print=" + received)
         if received == "esc":
             break
         time.sleep(0.5)
         # clear
-        print("4")
         received=""
         f.write(received)
         f.close
-        print("5")
         print("print=" + received)
 
     
     for ID in captures_ID:
         thread[ID].join()
     
+    print(" ")
     print("All completed successfully!")
 
 
@@ -113,8 +112,8 @@ def camera_capture(ID, captures, time_start):
 
 
 def detection():
-    ID=1
-    print("---detection---")
+    ID=0
+    print("--- 1. Detection ---")
     while True:
         capture = cv2.VideoCapture(ID) #cv2.CAP_DSHOW
         if capture.isOpened():
@@ -124,8 +123,62 @@ def detection():
         else:
             break
         capture.release()
-    print("---------------")
+    print("-------------------")
 
+
+def selection():
+    detection()
+    print("----- 2. Selection ------")
+    print("(1) Input [check ID] or [100])")
+    while True:
+        input_key=input()
+        if int_check(input_key):
+            input_int=int(input_key)
+            if captures_ID.count(input_int):
+                print("Set up Camera ID: " + str(input_int))
+                capture = cv2.VideoCapture(input_int) #cv2.CAP_DSHOW
+                # capture
+                while True:
+                    ret, frame = capture.read()
+                    resized_frame = cv2.resize(frame,(frame.shape[1]/2, frame.shape[0]/2))
+                    cv2.imshow('framename', resized_frame)
+                    key = cv2.waitKey(10)
+                    if key == 27:
+                        break
+                print("Release Camera ID: " + str(input_int))
+                capture.release()
+                cv2.destroyWindow('framename')
+            elif input_int == 100:
+                break
+            else:
+                print("The camera ID was not detected.")
+        else:
+            print("Input is invalid.")
+
+    while True:
+        print("(2) Input [exclude ID] or [100]")
+        input_key=input()
+        if int_check(input_key):
+            input_int=int(input_key)
+            if captures_ID.count(input_int):
+                captures_ID.remove(input_int)
+                print(captures_ID)
+            elif input_int==100:
+                break
+            else:
+                print("The camera ID was not detected.")
+        else:
+            print("Input is invalid.")
+    print("------------------")
+
+
+def int_check(check_num):
+    try:
+        int(check_num)
+    except ValueError:
+        return False
+    else:
+        return True
 
 def wait_setting():
     while True: 
@@ -140,10 +193,10 @@ def UDP_initial():
     global udpSock, Client_Addr, UDP_SERIAL_Addr, UDP_BUFSIZE
 
     # $ipconfig/all or $ifconfig
-    Client_IP = "192.168.11.6"
+    Client_IP = '172.23.6.189' #"192.168.11.6"
     Client_Port = 50000
     Client_Addr = (Client_IP, Client_Port)
-    UDP_SERIAL_IP = "192.168.11.8"
+    UDP_SERIAL_IP = "172.23.2.139"
     UDP_SERIAL_Port = 50000
     UDP_SERIAL_Addr = (UDP_SERIAL_IP, UDP_SERIAL_Port)
     UDP_BUFSIZE = 1024
@@ -185,34 +238,4 @@ def UDP_receive(command, comment):
 
 
 if __name__ == '__main__':
-    main_multithread()
-
-
-"""
-def main_simple():
-    detection()
-
-    i = 0
-    flag = True
-    captures = []
-
-    while(flag):
-        capture = cv2.VideoCapture(i,cv2.CAP_DSHOW)
-        ret, frame = capture.read()
-        flag = ret
-        if flag:
-            i += 1
-            captures.append(capture)
-
-    while(True):
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord(' '):
-            break
-
-        for i, capture in enumerate(captures):
-            ret, frame = capture.read()
-            cv2.imshow( 'frame' + str(i), frame )
-
-    capture.release()
-    cv2.destroyAllWindows()
-"""
+    selection()
