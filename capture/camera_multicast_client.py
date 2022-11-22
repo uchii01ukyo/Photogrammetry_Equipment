@@ -11,9 +11,15 @@ from contextlib import closing
 
 captures_ID = []
 local_address   = '172.23.9.171' # $ipconfig or $ifconfig
-camera_width=1920    # frame size - width
-camera_height=1080   # frame size - height
-camera_fps=30        # frame per second
+FRAME_WIDTH=1920
+FRAME_HEIGHT=1080
+FPS=30
+BRIGHTNESS=0
+CONTRAST=34
+SATURATION=64
+HUE=0
+GAIN=0
+EXPOSURE=-6
 
 def main():
 
@@ -47,8 +53,8 @@ def main():
     print("--- 3. connection ---")
 
     # capture (select one of the following)
-    mode_movie()
-    # mode_picture()
+    # mode_movie()
+    mode_picture()
     # mode_autoPicture()
 
     # multithread join
@@ -84,8 +90,8 @@ def mode_movie():
     set_multithread(camera_capture_movie)
     camera_connect_waiting()
     print(" ")
-    print("frame size: " + str(camera_width) + " x " + str(camera_height))
-    print("frame per second: " + str(camera_fps))
+    print("frame size: " + str(FRAME_WIDTH) + " x " + str(FRAME_HEIGHT))
+    print("frame per second: " + str(FPS))
     print(" ")
     while True:
         received=UDP_receive('c','-> capture')
@@ -97,12 +103,12 @@ def mode_movie():
             break
 
 
-def mode_pictute():
+def mode_picture():
     set_multithread(camera_capture_picture)
     camera_connect_waiting()
     print(" ")
-    print("frame size: " + str(camera_width) + " x " + str(camera_height))
-    print("frame per second: " + str(camera_fps))
+    print("frame size: " + str(FRAME_WIDTH) + " x " + str(FRAME_HEIGHT))
+    print("frame per second: " + str(FPS))
     print(" ")
     while True:
         received=UDP_receive('c','-> capture')
@@ -126,6 +132,29 @@ def mode_autoPictute():
     camera_connect_waiting()
     print("autoPicture")
 
+def camera_setting(cap):
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
+    cap.set(cv2.CAP_PROP_FPS, FPS)
+    cap.set(cv2.CAP_PROP_BRIGHTNESS, BRIGHTNESS)
+    cap.set(cv2.CAP_PROP_CONTRAST, CONTRAST)
+    cap.set(cv2.CAP_PROP_SATURATION, SATURATION)
+    cap.set(cv2.CAP_PROP_HUE, HUE)
+    cap.set(cv2.CAP_PROP_GAIN, GAIN)
+    cap.set(cv2.CAP_PROP_EXPOSURE, EXPOSURE)
+    #camera_setting_show(cap)
+ 
+def camera_setting_show(cap):
+    print("FRAME_WIDTH  : " + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
+    print("FRAME_HEIGHT : " + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    print("FPS          : " + str(cap.get(cv2.CAP_PROP_FPS)))
+    print("BRIGHTNESS   : " + str(cap.get(cv2.CAP_PROP_BRIGHTNESS)))
+    print("CONTRAST     : " + str(cap.get(cv2.CAP_PROP_CONTRAST)))
+    print("SATURATION   : " + str(cap.get(cv2.CAP_PROP_SATURATION)))
+    print("HUE          : " + str(cap.get(cv2.CAP_PROP_HUE)))
+    print("GAIN         : " + str(cap.get(cv2.CAP_PROP_GAIN)))
+    print("EXPOSURE     : " + str(cap.get(cv2.CAP_PROP_EXPOSURE)))
+
 
 def camera_capture_movie(ID, captures):
     
@@ -137,9 +166,7 @@ def camera_capture_movie(ID, captures):
         print("ID: " + str(ID) + " -> Failed")
 
     # camera setting
-    captures[ID].set(cv2.CAP_PROP_FRAME_WIDTH, camera_width)
-    captures[ID].set(cv2.CAP_PROP_FRAME_HEIGHT, camera_height)
-    captures[ID].set(cv2.CAP_PROP_FPS, camera_fps)
+    camera_setting(captures[ID])
 
     # mp4 setting
     fps = int(captures[ID].get(cv2.CAP_PROP_FPS))
@@ -174,7 +201,7 @@ def camera_capture_movie(ID, captures):
     captures[ID].release()
 
 
-def camera_capture_picture(ID, captures, time_start):
+def camera_capture_picture(ID, captures):
 
     # connect
     captures[ID] = cv2.VideoCapture(ID) #(ID,cv2.CAP_DSHOW) 
@@ -184,12 +211,9 @@ def camera_capture_picture(ID, captures, time_start):
         print("ID: " + str(ID) + " -> Failed")
 
     # camera setting
-    captures[ID].set(cv2.CAP_PROP_FRAME_WIDTH, camera_width)
-    captures[ID].set(cv2.CAP_PROP_FRAME_HEIGHT, camera_height)
-    captures[ID].set(cv2.CAP_PROP_FPS, camera_fps)
+    camera_setting(captures[ID])
 
-    f = open('waiting.txt', 'a')
-    f.write(str(ID) + '\n')
+    f = open('connect/camera' + str(ID) + '.txt', 'w')
     f.close()
 
     # wait
@@ -204,8 +228,7 @@ def camera_capture_picture(ID, captures, time_start):
         if data=='c':
             ret, frame = captures[ID].read()
             cv2.imwrite('{}_{}_{}.{}'.format('capture/camera', ID, n, 'jpg'), frame)
-            time_now=time.time()-time_start
-            print("ID: " + str(ID) + "-> capture (" + str(time_now) + " sec)")
+            print("ID: " + str(ID) + "-> capture")
             n += 1
             time.sleep(2)
         elif data == 'esc':
@@ -312,7 +335,7 @@ def UDP_initial():
 def UDP_receive(command, comment):
     while True:
         try:
-            print('UDP_receive IN')
+            print('UDP waiting...')
             data=sock.recv(bufsize)
             print("receive data: " + data.decode())
         except:
