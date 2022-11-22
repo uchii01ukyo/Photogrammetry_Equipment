@@ -10,33 +10,45 @@ def main():
     print("Start")
     time_start=time.time()
 
-    # File
-    file=open(file_path,'r')
-    n=sum([1 for _ in open(file_path)])
-
     # Setting
+    global fig, ax
     fig = plt.figure(figsize=(5,8))
     ax = fig.add_subplot(111, projection='3d')
     graph_items(ax)
 
     # Plot
+    plot(file_path, time_start)
+
+    # Capture
+    graph_capture(ax,fig, time_start)
+    #graph_rotation(ax,fig,time_start)
+
+    print("All complete.")
+
+
+def plot(file_path, time_start):
+    print(" --- Plot --- ")
+
+    # File
+    file=open(file_path,'r')
+    n=sum([1 for _ in open(file_path)])
+    print("-> Draw points: " + str(n))
+
+    # Plot
     for i in range(n):
+        if(i%4000==0):
+            print(str(i) + "/" + str(n) + " -> " + str(i/n*100) + "%")
         x,y,z,r,g,b=file.readline(n).split()
         x=float(x)
         y=float(y)
         z=float(z)
+        #color=(float(r),float(g),float(b))
         color=(float(r)/255,float(g)/255,float(b)/255)
         ax.scatter(x, y, z, color=color, s=1)
+
     time_now=time.time()-time_start
     print("Graph drawing completed (" + str(time_now) + " sec)")
-
-    # Capture
-    graph_capture(ax,fig, time_start)
-    print("Graph capture completed -> show ./capture")
-    #graph_rotation(ax,fig,time_start)
-    print("Graph rotation completed -> show ./rotation")
-
-    print("All done!")
+    print(" ----------- ")
 
 
 def graph_items(ax):
@@ -116,6 +128,8 @@ def graph_capture(ax,fig, time_start):
         time_now=time.time()-time_start
         print("-> " + str(time_now) + " sec")
 
+    print("Graph capture completed -> show ./capture")
+
     
 
 def graph_rotation(ax,fig, time_start):
@@ -135,6 +149,8 @@ def graph_rotation(ax,fig, time_start):
 
         time_now=time.time()-time_start
         print("-> " + str(time_now) + " sec")
+
+    print("Graph rotation completed -> show ./rotation")
 
 
 if __name__ == '__main__':

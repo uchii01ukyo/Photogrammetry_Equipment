@@ -9,29 +9,33 @@ import socket
 import shutil
 from contextlib import closing
 
-
 captures_ID = []
+local_address   = '172.23.9.171' # $ipconfig or $ifconfig
+camera_width=1920    # frame size - width
+camera_height=1080   # frame size - height
+camera_fps=30        # frame per second
 
-def main_multithread():
+def main():
 
     # UDP
     UDP_initial()
-    print("wait when main device open")
+    print("wait... start up the command on the server device!")
     received=UDP_receive('open','opened')
     
     # make main directory
-    dir = "./capture"
-    if os.path.exists(dir):
-        shutil.rmtree(dir)
-    os.makedirs(dir)
-    
+    make_directory("./capture")
+    make_directory("./connect")
+
     # camera detection
+    print("--- 1. Detection ---")
     detection()
 
     # camera selection
-    #selection()
+    # print("----- 2. Selection ------")
+    # selection()
 
     # initial
+    global time_start, thread, captures
     time_start=time.time()
     thread=[0]*(len(captures_ID)+1)
     captures=[0]*(len(captures_ID)+1)
@@ -39,16 +43,26 @@ def main_multithread():
     f = open("waiting.txt","w")
     f.close()
 
-    # main-connection
     print("Connecting ... " + str(len(captures_ID)))
     print("--- 3. connection ---")
-    for ID in captures_ID:
-        th=threading.Thread(target=camera_capture, name="camera" + str(ID), args=(ID,captures,time_start,))
-        thread[ID]=th
-        thread[ID].start()
 
+    # capture (select one of the following)
+    mode_movie()
+    # mode_picture()
+    # mode_autoPicture()
+
+    # multithread join
+    for ID in captures_ID:
+        thread[ID].join()
+    
+    print(" ")
+    print("All completed successfully!")
+
+
+def camera_connect_waiting():
     while True:
-        rows=sum([1 for _ in open('waiting.txt')])
+        dir="./connect"
+        rows=sum(os.path.isfile(os.path.join(dir, name)) for name in os.listdir(dir))
         if rows==len(captures_ID):
             f = open('waiting.txt', 'w')
             f.write('OK')
@@ -58,24 +72,62 @@ def main_multithread():
     print("-------------------")
     print("All connected.")
 
-    time.sleep(2)
+
+def set_multithread(target):
+    for ID in captures_ID:
+        th=threading.Thread(target=target, name="camera" + str(ID), args=(ID,captures,))
+        thread[ID]=th
+        thread[ID].start()
+
+
+def mode_movie():
+    set_multithread(camera_capture_movie)
+    camera_connect_waiting()
+    print(" ")
+    print("frame size: " + str(camera_width) + " x " + str(camera_height))
+    print("frame per second: " + str(camera_fps))
+    print(" ")
     while True:
         received=UDP_receive('c','-> capture')
         f = open('waiting.txt', 'w')
         f.write(received)
         f.close()
-        print("memo:" + received)
+        print("UDP received -> " + received)
         if received == "esc":
             break
-    
-    for ID in captures_ID:
-        thread[ID].join()
-    
+
+
+def mode_pictute():
+    set_multithread(camera_capture_picture)
+    camera_connect_waiting()
     print(" ")
-    print("All completed successfully!")
+    print("frame size: " + str(camera_width) + " x " + str(camera_height))
+    print("frame per second: " + str(camera_fps))
+    print(" ")
+    while True:
+        received=UDP_receive('c','-> capture')
+        f = open('waiting.txt', 'w')
+        f.write(received)
+        f.close()
+        print("UDP received -> " + received)
+        if received == "esc":
+            break
+        # clear
+        time.sleep(1)
+        received=""
+        f = open('waiting.txt', 'w')
+        f.write(received)
+        f.close()
+        print("capture stop")
 
 
-def camera_capture(ID, captures, time_start):
+def mode_autoPictute():
+    set_multithread(camera_capture_picture)
+    camera_connect_waiting()
+    print("autoPicture")
+
+
+def camera_capture_movie(ID, captures):
     
     # connect
     captures[ID] = cv2.VideoCapture(ID) #(ID,cv2.CAP_DSHOW) 
@@ -84,26 +136,32 @@ def camera_capture(ID, captures, time_start):
     else:
         print("ID: " + str(ID) + " -> Failed")
 
+    # camera setting
+    captures[ID].set(cv2.CAP_PROP_FRAME_WIDTH, camera_width)
+    captures[ID].set(cv2.CAP_PROP_FRAME_HEIGHT, camera_height)
+    captures[ID].set(cv2.CAP_PROP_FPS, camera_fps)
+
+    # mp4 setting
     fps = int(captures[ID].get(cv2.CAP_PROP_FPS))
     w = int(captures[ID].get(cv2.CAP_PROP_FRAME_WIDTH))
     h = int(captures[ID].get(cv2.CAP_PROP_FRAME_HEIGHT))
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')        # fourcc - mp4
     video = cv2.VideoWriter('capture/video_' + str(ID) + '.mp4', fourcc, fps, (w, h))  # filename, fourcc, fps, size
 
-    f = open('waiting.txt', 'a')
-    f.write(str(ID) + '\n')
+    f = open('connect/camera' + str(ID) + '.txt', 'w')
     f.close()
 
-    # wait1
+    # wait
     wait_setting()
-    # wait2
+    # wait
     while True: 
         f = open('waiting.txt', 'r')
         data = f.read()
         f.close()
         if data=='c':
             break
-    
+
+    # capture
     while True:
         ret, frame = captures[ID].read()
         #cv2.imshow('camera', frame)
@@ -114,6 +172,28 @@ def camera_capture(ID, captures, time_start):
         if data == 'esc':
             break
     captures[ID].release()
+
+
+def camera_capture_picture(ID, captures, time_start):
+
+    # connect
+    captures[ID] = cv2.VideoCapture(ID) #(ID,cv2.CAP_DSHOW) 
+    if captures[ID].isOpened():
+        print("ID: " + str(ID) + " -> Connected")
+    else:
+        print("ID: " + str(ID) + " -> Failed")
+
+    # camera setting
+    captures[ID].set(cv2.CAP_PROP_FRAME_WIDTH, camera_width)
+    captures[ID].set(cv2.CAP_PROP_FRAME_HEIGHT, camera_height)
+    captures[ID].set(cv2.CAP_PROP_FPS, camera_fps)
+
+    f = open('waiting.txt', 'a')
+    f.write(str(ID) + '\n')
+    f.close()
+
+    # wait
+    wait_setting()
 
     # capture
     n=0
@@ -134,8 +214,8 @@ def camera_capture(ID, captures, time_start):
 
 
 def detection():
+    print("detects connected cameras.")
     ID=0
-    print("--- 1. Detection ---")
     while True:
         capture = cv2.VideoCapture(ID) #cv2.CAP_DSHOW
         if capture.isOpened():
@@ -149,58 +229,60 @@ def detection():
 
 
 def selection():
-    detection()
-    print("----- 2. Selection ------")
-    print("(1) Input [check ID] or [100])")
+    # detection()
+    print("select cameras.")
+    check_camera()
+    delete_camera()
+    print("------------------")
+
+
+def check_camera():
     while True:
+        print("check: Input [check ID] or [esc])")
         input_key=input()
+        if input_key=='esc':
+            break
         if int_check(input_key):
             input_int=int(input_key)
-            if captures_ID.count(input_int):
-                print("Set up Camera ID: " + str(input_int))
-                capture = cv2.VideoCapture(input_int) #cv2.CAP_DSHOW
-                # capture
+            capture = cv2.VideoCapture(input_int) #cv2.CAP_DSHOW
+            if capture.isOpened():
+                print("set up camera ID: " + str(input_int))
+                print("* exit: frame windows -> esc")
                 while True:
                     ret, frame = capture.read()
-                    resized_frame = cv2.resize(frame,(frame.shape[1]/2, frame.shape[0]/2))
-                    cv2.imshow('framename', resized_frame)
+                    resized_frame = cv2.resize(frame,(frame.shape[1], frame.shape[0]))
+                    cv2.imshow(str(input_int), resized_frame)
                     key = cv2.waitKey(10)
-                    if key == 27:
+                    if key == 27: # esc
                         break
-                print("Release Camera ID: " + str(input_int))
                 capture.release()
                 cv2.destroyWindow('framename')
-            elif input_int == 100:
-                break
+                print("release camera ID: " + str(input_int))
             else:
-                print("The camera ID was not detected.")
+                print("Input is invalid.")
+                break
+            capture.release()
         else:
             print("Input is invalid.")
+    print("-------------------")
 
+
+def delete_camera():
     while True:
-        print("(2) Input [exclude ID] or [100]")
+        print("delete: Input [check ID] or [esc])")
         input_key=input()
+        if input_key=='esc':
+            break
         if int_check(input_key):
             input_int=int(input_key)
             if captures_ID.count(input_int):
                 captures_ID.remove(input_int)
                 print(captures_ID)
-            elif input_int==100:
-                break
             else:
                 print("The camera ID was not detected.")
         else:
             print("Input is invalid.")
-    print("------------------")
-
-
-def int_check(check_num):
-    try:
-        int(check_num)
-    except ValueError:
-        return False
-    else:
-        return True
+    print("-------------------")
 
 def wait_setting():
     while True: 
@@ -211,11 +293,10 @@ def wait_setting():
             break
         time.sleep(0.1) # waiting
 
+
 def UDP_initial():
     global local_address, multicast_group, port, bufsize, sock
 
-    # $ipconfig/all or $ifconfig
-    local_address   = '100.64.1.32'
     multicast_group = '239.255.0.1'
     port = 4000
     bufsize = 4096
@@ -227,22 +308,13 @@ def UDP_initial():
                     socket.IP_ADD_MEMBERSHIP,
                     socket.inet_aton(multicast_group) + socket.inet_aton(local_address))
 
-    '''
-    with closing(socket.socket(socket.AF_INET, socket.SOCK_DGRAM)) as sock:
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(('', port))
-        sock.setsockopt(socket.IPPROTO_IP,
-                        socket.IP_ADD_MEMBERSHIP,
-                        socket.inet_aton(multicast_group) + socket.inet_aton(local_address))
-    '''
-
 
 def UDP_receive(command, comment):
     while True:
         try:
-            print("IN")
+            print('UDP_receive IN')
             data=sock.recv(bufsize)
-            print("recv data: " + data.decode())
+            print("receive data: " + data.decode())
         except:
             pass
         else:
@@ -252,5 +324,21 @@ def UDP_receive(command, comment):
     return data.decode()
 
 
+def make_directory(dir):
+    print("create a directory, " + str(dir))
+    if os.path.exists(dir):
+        shutil.rmtree(dir)
+    os.makedirs(dir)
+
+
+def int_check(check_num):
+    try:
+        int(check_num)
+    except ValueError:
+        return False
+    else:
+        return True
+
+
 if __name__ == '__main__':
-   main_multithread()
+   main()

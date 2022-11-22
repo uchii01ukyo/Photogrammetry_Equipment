@@ -1,2 +1,2 @@
 cd /Users/uchiiukyo/Photogrammetry_Equipment/capture
-python camera_capture_multicast_client.py
+python camera_multicast_client.py check_camera

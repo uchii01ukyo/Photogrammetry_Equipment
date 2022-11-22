@@ -3,7 +3,7 @@ import cv2
 import os
 
 # esp = break, c = capture
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 # os.makedirs(dir_path, exist_ok=True)
 # base_path = os.path.join(dir_path, basename)
