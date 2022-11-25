@@ -14,13 +14,7 @@ captures_ID = []
 local_address   = '172.23.3.96' # $ipconfig or $ifconfig
 FRAME_WIDTH=1920
 FRAME_HEIGHT=1080
-FPS=30
-BRIGHTNESS=0
-CONTRAST=34
-SATURATION=64
-HUE=0
-GAIN=0
-EXPOSURE=-6
+BRIGHTNESS=30
 
 def main():
 
@@ -151,13 +145,7 @@ def mode_autoPictute():
 def camera_setting(cap):
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
-    cap.set(cv2.CAP_PROP_FPS, FPS)
     cap.set(cv2.CAP_PROP_BRIGHTNESS, BRIGHTNESS)
-    cap.set(cv2.CAP_PROP_CONTRAST, CONTRAST)
-    cap.set(cv2.CAP_PROP_SATURATION, SATURATION)
-    cap.set(cv2.CAP_PROP_HUE, HUE)
-    cap.set(cv2.CAP_PROP_GAIN, GAIN)
-    cap.set(cv2.CAP_PROP_EXPOSURE, EXPOSURE)
     #camera_setting_show(cap)
 
 

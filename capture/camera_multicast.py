@@ -4,24 +4,18 @@ import cv2
 import os
 import time
 import threading
-#import keyboard
+import keyboard
 import socket
 import shutil
 from contextlib import closing
 
+
 captures_ID = []
-local_address   = '172.23.9.171' # $ipconfig or $ifconfig
 FRAME_WIDTH=1920
 FRAME_HEIGHT=1080
 BRIGHTNESS=30
 
 def main():
-
-    # UDP
-    UDP_initial()
-    print("wait... start up the command on the server device!")
-    received=UDP_receive('open','opened')
-    
     # make main directory
     make_directory("./capture")
     make_directory("./connect")
@@ -47,8 +41,8 @@ def main():
     print("--- 3. connection ---")
 
     # capture (select one of the following)
-    mode_movie()
-    # mode_picture()
+    # mode_movie()
+    mode_picture()
     # mode_autoPicture()
 
     # multithread join
@@ -87,13 +81,22 @@ def mode_movie():
     print("frame size: " + str(FRAME_WIDTH) + " x " + str(FRAME_HEIGHT))
     print("frame per second: " + str(FPS))
     print(" ")
+    print("c = capture, esc = exit")
+
     while True:
-        received=UDP_receive('c','-> capture')
-        f = open('waiting.txt', 'w')
-        f.write(received)
-        f.close()
-        print("UDP received -> " + received)
-        if received == "esc":
+        if keyboard.read_key() == "c":
+            print("Push c -> capture")
+            time0=time.time()
+            f = open('waiting.txt', 'w')
+            f.write("c")
+            f.close()
+            break
+    while True:
+        if keyboard.read_key() == "esc":
+            print("Push esc -> exit")
+            f = open('waiting.txt', 'w')
+            f.write("esc")
+            f.close()
             break
 
 
@@ -102,38 +105,40 @@ def mode_picture():
     camera_connect_waiting()
     print(" ")
     print("frame size: " + str(FRAME_WIDTH) + " x " + str(FRAME_HEIGHT))
-    print("frame per second: " + str(FPS))
     print(" ")
+    print("c = capture, esc = exit")
     while True:
-        received=UDP_receive('c','-> capture')
-        f = open('waiting.txt', 'w')
-        f.write(received)
-        f.close()
-        print("UDP received -> " + received)
-        if received == "esc":
+        if keyboard.read_key() == "c":
+            f = open('waiting.txt', 'w')
+            f.write("c")
+            f.close()
+            time.sleep(1)
+            f = open('waiting.txt', 'w')
+            f.write(" ")
+            f.close()
+        elif keyboard.read_key() == "esc":
+            f = open('waiting.txt', 'w')
+            f.write("esc")
+            f.close()
             break
-        # clear
         time.sleep(2)
-        received=""
-        f = open('waiting.txt', 'w')
-        f.write(received)
-        f.close()
-        print("capture stop")
 
 
 def mode_autoPictute():
     set_multithread(camera_capture_picture)
     camera_connect_waiting()
+    print("c = capture, esc = exit")
     print("autoPicture")
+
 
 def camera_setting(cap):
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
     cap.set(cv2.CAP_PROP_BRIGHTNESS, BRIGHTNESS)
     #camera_setting_show(cap)
- 
+
+
 def camera_setting_show(cap):
-    print(" ")
     print("FRAME_WIDTH  : " + str(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
     print("FRAME_HEIGHT : " + str(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
     print("FPS          : " + str(cap.get(cv2.CAP_PROP_FPS)))
@@ -143,8 +148,6 @@ def camera_setting_show(cap):
     print("HUE          : " + str(cap.get(cv2.CAP_PROP_HUE)))
     print("GAIN         : " + str(cap.get(cv2.CAP_PROP_GAIN)))
     print("EXPOSURE     : " + str(cap.get(cv2.CAP_PROP_EXPOSURE)))
-    print(" ")
-
 
 def camera_capture_movie(ID, captures):
     
@@ -217,7 +220,7 @@ def camera_capture_picture(ID, captures):
         f.close()
         if data=='c':
             ret, frame = captures[ID].read()
-            cv2.imwrite('{}_{}_{}.{}'.format('capture/camera', ID+40, n, 'jpg'), frame)
+            cv2.imwrite('{}_{}_{}.{}'.format('capture/camera', ID, n, 'png'), frame)
             print("ID: " + str(ID) + "-> capture")
             n += 1
             time.sleep(2)
@@ -305,36 +308,6 @@ def wait_setting():
         if(data=='OK'):
             break
         time.sleep(0.1) # waiting
-
-
-def UDP_initial():
-    global local_address, multicast_group, port, bufsize, sock
-
-    multicast_group = '239.255.0.1'
-    port = 4000
-    bufsize = 4096
-
-    sock=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind(('', port))
-    sock.setsockopt(socket.IPPROTO_IP,
-                    socket.IP_ADD_MEMBERSHIP,
-                    socket.inet_aton(multicast_group) + socket.inet_aton(local_address))
-
-
-def UDP_receive(command, comment):
-    while True:
-        try:
-            print('UDP waiting...')
-            data=sock.recv(bufsize)
-            print("receive data: " + data.decode())
-        except:
-            pass
-        else:
-            if data.decode() == command:
-                print(comment)
-            break
-    return data.decode()
 
 
 def make_directory(dir):
