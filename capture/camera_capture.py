@@ -15,7 +15,7 @@ EXPOSURE=-6
 
 def camera_capture():
     cap = cv2.VideoCapture(0)
-    #camera_setting(cap)
+    camera_setting(cap)
     camera_setting_show(cap)
     print('capture = c, exit = esc')
 
@@ -40,31 +40,32 @@ def check_camera():
         print("check: input [camera ID] or [esc]")
         input_key=input()
         if input_key=='esc':
+            print("break")
             break
         if int_check(input_key):
             input_int=int(input_key)
             capture = cv2.VideoCapture(input_int) #cv2.CAP_DSHOW
             if capture.isOpened():
-                #camera_setting(capture)
+                camera_setting(capture)
                 camera_setting_show(capture)
                 print("set up camera ID: " + str(input_int))
                 print("exit: frame windows -> esc")
                 while True:
                     ret, frame = capture.read()
-                    resized_frame = cv2.resize(frame,(810, 540))
-                    cv2.startWindowThread()
-                    cv2.imshow('framename', resized_frame)
+                    width=frame.shape[1]
+                    height=frame.shape[0]
+                    rate=540/float(height)
+                    resized_frame = cv2.resize(frame,(int(width*rate), int(height*rate)))
+                    cv2.imshow("Camera ID: " + str(input_key), resized_frame)
                     key = cv2.waitKey(10)
                     if key == 27: # esc
                         break
-
                 capture.release()
-                cv2.destroyWindow('framename')
+                cv2.destroyWindow("Camera ID: " + str(input_key))
                 print("release camera ID: " + str(input_int))
             else:
                 print("Input is invalid.")
                 capture.release()
-                break
         else:
             print("Input is invalid.")
     print("-------------------")
