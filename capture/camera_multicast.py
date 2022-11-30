@@ -79,7 +79,6 @@ def mode_movie():
     camera_connect_waiting()
     print(" ")
     print("frame size: " + str(FRAME_WIDTH) + " x " + str(FRAME_HEIGHT))
-    print("frame per second: " + str(FPS))
     print(" ")
     print("c = capture, esc = exit")
 
@@ -148,6 +147,7 @@ def camera_setting_show(cap):
     print("HUE          : " + str(cap.get(cv2.CAP_PROP_HUE)))
     print("GAIN         : " + str(cap.get(cv2.CAP_PROP_GAIN)))
     print("EXPOSURE     : " + str(cap.get(cv2.CAP_PROP_EXPOSURE)))
+
 
 def camera_capture_movie(ID, captures):
     

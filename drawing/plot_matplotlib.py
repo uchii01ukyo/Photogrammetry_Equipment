@@ -4,6 +4,14 @@ import time
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
+'''
+4,000 points = about 3 sec
+10,000 points = about 8 sec
+30,000 points = about 30 sec
+60,000 points = about 60 sec
+80,000 points = about 120 sec
+'''
+
 file_path='plotdata.txt'
 
 def main():
