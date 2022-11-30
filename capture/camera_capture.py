@@ -20,9 +20,13 @@ def camera_capture():
     print('capture = c, exit = esc')
 
     n = 0
+    height_fix=540
     while True:
         ret, frame = cap.read()
-        resized_frame = cv2.resize(frame,(810, 540))
+        width=frame.shape[1]
+        height=frame.shape[0]
+        rate=height_fix/float(height)
+        resized_frame = cv2.resize(frame,(int(width*rate), int(height*rate)))
         cv2.imshow('framename', resized_frame)
 
         key = cv2.waitKey(10)
@@ -36,6 +40,7 @@ def camera_capture():
 
 
 def check_camera():
+    height_fix=540
     while True:
         print("check: input [camera ID] or [esc]")
         input_key=input()
@@ -54,7 +59,7 @@ def check_camera():
                     ret, frame = capture.read()
                     width=frame.shape[1]
                     height=frame.shape[0]
-                    rate=540/float(height)
+                    rate=height_fix/float(height)
                     resized_frame = cv2.resize(frame,(int(width*rate), int(height*rate)))
                     cv2.imshow("Camera ID: " + str(input_key), resized_frame)
                     key = cv2.waitKey(10)

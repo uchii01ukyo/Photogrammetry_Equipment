@@ -41,8 +41,8 @@ def main():
     print("--- 3. connection ---")
 
     # capture (select one of the following)
-    # mode_movie()
-    mode_picture()
+    mode_movie()
+    # mode_picture()
     # mode_autoPicture()
 
     # multithread join
