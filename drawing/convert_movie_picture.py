@@ -7,7 +7,7 @@ def main():
     make_directory('./picture')
 
     #directory = '../capture/capture'
-    directory='/Users/uchiiukyo/Desktop/capture/capture2'
+    directory='/Users/uchiiukyo/Desktop/20221202/capture3'
     print(sum(os.path.isfile(os.path.join(directory,name)) for name in os.listdir(directory)))
 
     ID=0
@@ -15,7 +15,7 @@ def main():
         file = os.path.join(directory, filename)
         if os.path.isfile(file) and filename.endswith('.mp4'):
             print(file)
-            save_frame_range(file, 0, 0.3, ID)
+            save_frame_range(file, 0.5, 0.8, ID)
             ID=ID+1
 
 
@@ -37,7 +37,7 @@ def save_frame_range(video_dir, start_sec, stop_sec, ID):
         ret, frame = cap.read()
         frame_sec='{:.02f}'.format(n/fps)
         if ret:
-            cv2.imwrite('{}_{}_{}sec.{}'.format('picture/picture', ID, frame_sec, 'jpg'), frame)
+            cv2.imwrite('{}_{}_{}_{}sec.{}'.format('picture/picture', ID,n,frame_sec, 'jpg'), frame)
         else:
             return
 

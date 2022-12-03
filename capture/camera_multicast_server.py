@@ -8,15 +8,14 @@ import keyboard
 import socket
 import shutil
 from contextlib import closing
-
+import sys
 
 captures_ID = []
-local_address   = '172.23.3.96' # $ipconfig or $ifconfig
-FRAME_WIDTH=1920
-FRAME_HEIGHT=1080
-BRIGHTNESS=30
+CameraNum=0
+
 
 def main():
+    initial_setting()
 
     # UDP
     UDP_initial()
@@ -43,22 +42,63 @@ def main():
     f = open("waiting.txt","w")
     f.close()
 
-    print("Connecting ... " + str(len(captures_ID)))
-    print("--- 3. connection ---")
 
-    # capture (select one of the following)
-    mode_movie()
-    # mode_picture()
-    # mode_autoPicture()
+    print("--- 3. connection ---")
+    # count
+    CameraNum=len(captures_ID)
+    print("Connecting ... " + str(CameraNum))
+    for num in range(CameraNum):
+        print(str(num)+ ": ")
+
+    # mode
+    if(MODE=='movie'):
+        mode_movie()
+    elif(MODE=='picture'):
+        mode_picture()
+    else:
+        print('invalid mode! select mode, picture / movie.')
 
     # multithread join
     for ID in captures_ID:
         thread[ID].join()
     
+    time.sleep(1)
+    UDP_send('esc')
     print(" ")
     print("All completed successfully!")
 
 
+def initial_setting():
+    global FILE_NAME, MODE, FRAME_WIDTH, FRAME_HEIGHT, FRAME_FPS, FRAME_BRIGHT
+
+    args = sys.argv
+    if(args[0]=='picture') or (args[0]=='movie'):
+        print('invaid input mode value! input only picture/movie.')
+        sys.exit()
+
+    for num in range(2,6):
+        if(int_check(args[num])==False):
+            print('invaid input value! input only [int].')
+            sys.exit()
+
+    FILE_NAME=args[0]
+    MODE=args[1]
+    FRAME_WIDTH=args[2]
+    FRAME_HEIGHT=args[3]
+    FRAME_FPS=args[4]
+    FRAME_BRIGHT=args[5]
+
+    print(' ')
+    print('Start, ' + str(FILE_NAME))
+    print('- MODE         : ' + str(MODE))
+    print('- FRAME_WIDTH  : ' + str(FRAME_WIDTH ))
+    print('- FRAME_HEIGHT : ' + str(FRAME_HEIGHT))
+    print('- FRAME_FPS    : ' + str(FRAME_FPS))
+    print('- FRAME_BRIGHT : ' + str(FRAME_BRIGHT))
+    print(' ')
+
+
+'''
 def camera_connect_waiting():
     while True:
         dir="./connect"
@@ -71,23 +111,23 @@ def camera_connect_waiting():
         time.sleep(0.1)
     print("-------------------")
     print("All connected.")
+'''
 
 
 def set_multithread(target):
+    lock = threading.RLock()
     for ID in captures_ID:
-        th=threading.Thread(target=target, name="camera" + str(ID), args=(ID,captures,))
+        th=threading.Thread(target=target, name="camera" + str(ID), args=(ID,captures,lock))
         thread[ID]=th
         thread[ID].start()
 
 
 def mode_movie():
     set_multithread(camera_capture_movie)
-    camera_connect_waiting()
-    print(" ")
-    print("frame size: " + str(FRAME_WIDTH) + " x " + str(FRAME_HEIGHT))
-    print("frame per second: " + str(FPS))
+    #camera_connect_waiting()
     print(" ")
     print("c = capture, esc = exit")
+    print(" ")
 
     while True:
         if keyboard.read_key() == "c":
@@ -110,12 +150,11 @@ def mode_movie():
 
 def mode_picture():
     set_multithread(camera_capture_picture)
-    camera_connect_waiting()
-    print(" ")
-    print("frame size: " + str(FRAME_WIDTH) + " x " + str(FRAME_HEIGHT))
-    print("frame per second: " + str(FPS))
+    #camera_connect_waiting()
     print(" ")
     print("c = capture, esc = exit")
+    print(" ")
+
     while True:
         if keyboard.read_key() == "c":
             UDP_send('c')
@@ -135,17 +174,11 @@ def mode_picture():
         time.sleep(2)
 
 
-def mode_autoPictute():
-    set_multithread(camera_capture_picture)
-    camera_connect_waiting()
-    print("c = capture, esc = exit")
-    print("autoPicture")
-
-
 def camera_setting(cap):
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
-    cap.set(cv2.CAP_PROP_BRIGHTNESS, BRIGHTNESS)
+    cap.set(cv2.CAP_PROP_FPS, FRAME_FPS)
+    cap.set(cv2.CAP_PROP_BRIGHTNESS, FRAME_BRIGHT)
     #camera_setting_show(cap)
 
 
@@ -160,7 +193,8 @@ def camera_setting_show(cap):
     print("GAIN         : " + str(cap.get(cv2.CAP_PROP_GAIN)))
     print("EXPOSURE     : " + str(cap.get(cv2.CAP_PROP_EXPOSURE)))
 
-def camera_capture_movie(ID, captures):
+
+def camera_capture_movie(ID, captures, lock):
     
     # connect
     captures[ID] = cv2.VideoCapture(ID) #(ID,cv2.CAP_DSHOW) 
@@ -179,17 +213,19 @@ def camera_capture_movie(ID, captures):
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')        # fourcc - mp4
     video = cv2.VideoWriter('capture/video_' + str(ID) + '.mp4', fourcc, fps, (w, h))  # filename, fourcc, fps, size
 
-    f = open('connect/camera' + str(ID) + '.txt', 'w')
-    f.close()
+    with lock:
+        print("\033[" + str(CameraNum-ID+1) + "A")
+        print(str(ID) + ": Connected")
+        print("\033[4A")
+        print("\033[" + str(CameraNum-ID+1) + "B")
 
-    # wait
-    wait_setting()
     # wait
     while True: 
         f = open('waiting.txt', 'r')
         data = f.read()
         f.close()
         if data=='c':
+            time.sleep(0.005*ID)
             break
 
     # capture
@@ -205,7 +241,7 @@ def camera_capture_movie(ID, captures):
     captures[ID].release()
 
 
-def camera_capture_picture(ID, captures):
+def camera_capture_picture(ID, captures, lock):
 
     # connect
     captures[ID] = cv2.VideoCapture(ID) #(ID,cv2.CAP_DSHOW) 
@@ -216,12 +252,12 @@ def camera_capture_picture(ID, captures):
 
     # camera setting
     camera_setting(captures[ID])
-
-    f = open('connect/camera' + str(ID) + '.txt', 'w')
-    f.close()
-
-    # wait
-    wait_setting()
+    
+    with lock:
+        print("\033[" + str(CameraNum-ID+1) + "A")
+        print(str(ID) + ": Connected")
+        print("\033[4A")
+        print("\033[" + str(CameraNum-ID+1) + "B")
 
     # capture
     n=0
@@ -230,6 +266,7 @@ def camera_capture_picture(ID, captures):
         data = f.read()
         f.close()
         if data=='c':
+            time.sleep(0.005*ID)
             ret, frame = captures[ID].read()
             cv2.imwrite('{}_{}_{}.{}'.format('capture/camera', ID, n, 'png'), frame)
             print("ID: " + str(ID) + "-> capture")
@@ -311,6 +348,7 @@ def delete_camera():
             print("Input is invalid.")
     print("-------------------")
 
+
 def wait_setting():
     while True: 
         f = open('waiting.txt', 'r')
@@ -324,6 +362,7 @@ def wait_setting():
 def UDP_initial():
     global local_address, multicast_group, port, bufsize, sock
 
+    local_address = socket.gethostbyname(socket.gethostname())
     multicast_group = '239.255.0.1'
     port = 4000
     bufsize = 4096
@@ -350,6 +389,7 @@ def int_check(check_num):
         return False
     else:
         return True
+
 
 def UDP_send(command):
     print(command)

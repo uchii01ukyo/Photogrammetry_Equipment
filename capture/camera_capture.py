@@ -14,9 +14,13 @@ EXPOSURE=-6
 
 
 def camera_capture():
-    cap = cv2.VideoCapture(0)
+    make_directory("./capture")
+
+    cap = cv2.VideoCapture(1)
     camera_setting(cap)
     camera_setting_show(cap)
+
+    print(" ")
     print('capture = c, exit = esc')
 
     n = 0
@@ -31,7 +35,7 @@ def camera_capture():
 
         key = cv2.waitKey(10)
         if key == ord('c'):
-            cv2.imwrite('{}_{}.{}'.format('camera_capture', n, 'jpg'), frame)
+            cv2.imwrite('{}_{}.{}'.format('capture/capture', n, 'jpg'), frame)
             n += 1
         elif key == 27:
             break
@@ -110,3 +114,9 @@ def int_check(check_num):
         return False
     else:
         return True
+
+def make_directory(dir):
+    print("create a directory, " + str(dir))
+    if os.path.exists(dir):
+        shutil.rmtree(dir)
+    os.makedirs(dir)
