@@ -10,7 +10,6 @@ from contextlib import closing
 import sys
 
 captures_ID = []
-CameraNum=0
 
 
 def main():
@@ -23,7 +22,7 @@ def main():
     
     # make main directory
     make_directory("./capture")
-    make_directory("./connect")
+    print(" ")
 
     # camera detection
     print("--- 1. Detection ---")
@@ -34,21 +33,19 @@ def main():
     # selection()
 
     # initial
-    global time_start, thread, captures
+    global time_start, thread, captures, connect_num, camera_num
     time_start=time.time()
     thread=[0]*(len(captures_ID)+1)
     captures=[0]*(len(captures_ID)+1)
+    camera_num=len(captures_ID)
+    connect_num=0
     # clear text
     f = open("waiting.txt","w")
     f.close()
 
 
     print("--- 3. connection ---")
-    # count
-    CameraNum=len(captures_ID)
     print("Connecting ... " + str(CameraNum))
-    for num in range(CameraNum):
-        print(str(num)+ ": ")
 
     # mode
     if(MODE=='movie'):
@@ -87,7 +84,7 @@ def initial_setting():
     FRAME_BRIGHT=args[5]
 
     print(' ')
-    print('Start, ' + str(FILE_NAME))
+    print(str(FILE_NAME))
     print('- MODE         : ' + str(MODE))
     print('- FRAME_WIDTH  : ' + str(FRAME_WIDTH ))
     print('- FRAME_HEIGHT : ' + str(FRAME_HEIGHT))
@@ -96,12 +93,10 @@ def initial_setting():
     print(' ')
 
 
-'''
 def camera_connect_waiting():
-    while True:
-        dir="./connect"
-        rows=sum(os.path.isfile(os.path.join(dir, name)) for name in os.listdir(dir))
-        if rows==len(captures_ID):
+    while True: 
+        global connect_num, camera_num
+        if connect_num==camera_num:
             f = open('waiting.txt', 'w')
             f.write('OK')
             f.close()
@@ -109,7 +104,6 @@ def camera_connect_waiting():
         time.sleep(0.1)
     print("-------------------")
     print("All connected.")
-'''
 
 
 def set_multithread(target):
@@ -122,39 +116,40 @@ def set_multithread(target):
 
 def mode_movie():
     set_multithread(camera_capture_movie)
-    #camera_connect_waiting()
+    camera_connect_waiting()
     print(" ")
 
     while True:
-        received=UDP_receive('c','-> capture')
+        received=UDP_receive('c','[ capture start ]')
         f = open('waiting.txt', 'w')
         f.write(received)
         f.close()
         print("UDP received -> " + received)
         if received == "esc":
+            print(" [ exit ]")
             break
 
 
 def mode_picture():
     set_multithread(camera_capture_picture)
-    #camera_connect_waiting()
+    camera_connect_waiting()
     print(" ")
 
     while True:
-        received=UDP_receive('c','-> capture')
+        received=UDP_receive('c','[ capture ]')
         f = open('waiting.txt', 'w')
         f.write(received)
         f.close()
         print("UDP received -> " + received)
         if received == "esc":
+            print(" [ esc ]")
             break
         # clear
-        time.sleep(2)
+        time.sleep(1)
         received=""
         f = open('waiting.txt', 'w')
         f.write(received)
         f.close()
-        print("capture stop")
 
 
 def camera_setting(cap):
@@ -184,9 +179,13 @@ def camera_capture_movie(ID, captures, lock):
     # connect
     captures[ID] = cv2.VideoCapture(ID) #(ID,cv2.CAP_DSHOW) 
     if captures[ID].isOpened():
-        print("ID: " + str(ID) + " -> Connected")
+        with lock:
+            print("ID: " + str(ID) + " -> Connected")
+            global connect_num
+            connect_num=connect_num+1
     else:
-        print("ID: " + str(ID) + " -> Failed")
+        with lock:
+            print("ID: " + str(ID) + " -> Failed")
 
     # camera setting
     camera_setting(captures[ID])
@@ -198,11 +197,8 @@ def camera_capture_movie(ID, captures, lock):
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')        # fourcc - mp4
     video = cv2.VideoWriter('capture/video_' + str(ID) + '.mp4', fourcc, fps, (w, h))  # filename, fourcc, fps, size
 
-    with lock:
-        print("\033[" + str(CameraNum-ID+1) + "A")
-        print(str(ID) + ": Connected")
-        print("\033[4A")
-        print("\033[" + str(CameraNum-ID+1) + "B")
+    # wait
+    wait_setting()
 
     # wait
     while True: 
@@ -231,18 +227,19 @@ def camera_capture_picture(ID, captures, lock):
     # connect
     captures[ID] = cv2.VideoCapture(ID) #(ID,cv2.CAP_DSHOW) 
     if captures[ID].isOpened():
-        print("ID: " + str(ID) + " -> Connected")
+        with lock:
+            print("ID: " + str(ID) + " -> Connected")
+            global connect_num
+            connect_num=connect_num+1
     else:
-        print("ID: " + str(ID) + " -> Failed")
+        with lock:
+            print("ID: " + str(ID) + " -> Failed")
 
     # camera setting
     camera_setting(captures[ID])
 
-    with lock:
-        print("\033[" + str(CameraNum-ID+1) + "A")
-        print(str(ID) + ": Connected")
-        print("\033[4A")
-        print("\033[" + str(CameraNum-ID+1) + "B")
+    # wait
+    wait_setting()
 
     # capture
     n=0
@@ -256,7 +253,7 @@ def camera_capture_picture(ID, captures, lock):
             cv2.imwrite('{}_{}_{}.{}'.format('capture/camera', ID+40, n, 'jpg'), frame)
             print("ID: " + str(ID) + "-> capture")
             n += 1
-            time.sleep(2)
+            time.sleep(1)
         elif data == 'esc':
             break
     captures[ID].release()

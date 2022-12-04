@@ -10,7 +10,6 @@ from contextlib import closing
 import sys
 
 captures_ID = []
-CameraNum=0
 
 
 def main():
@@ -18,7 +17,7 @@ def main():
 
     # make main directory
     make_directory("./capture")
-    make_directory("./connect")
+    print(" ")
 
     # camera detection
     print("--- 1. Detection ---")
@@ -29,21 +28,18 @@ def main():
     # selection()
 
     # initial
-    global time_start, thread, captures
+    global time_start, thread, captures, connect_num, camera_num
     time_start=time.time()
     thread=[0]*(len(captures_ID)+1)
     captures=[0]*(len(captures_ID)+1)
+    camera_num=len(captures_ID)
+    connect_num=0
     # clear text
     f = open("waiting.txt","w")
     f.close()
-
-
+    
     print("--- 3. connection ---")
-    # count
-    CameraNum=len(captures_ID)
-    print("Connecting ... " + str(CameraNum))
-    for num in range(CameraNum):
-        print(str(num)+ ": ")
+    print("Connecting ... " + str(camera_num))
 
     # mode
     if(MODE=='movie'):
@@ -57,6 +53,7 @@ def main():
     for ID in captures_ID:
         thread[ID].join()
     
+    time.sleep(1)
     print(" ")
     print("All completed successfully!")
 
@@ -82,7 +79,7 @@ def initial_setting():
     FRAME_BRIGHT=args[5]
 
     print(' ')
-    print('Start, ' + str(FILE_NAME))
+    print(str(FILE_NAME))
     print('- MODE         : ' + str(MODE))
     print('- FRAME_WIDTH  : ' + str(FRAME_WIDTH ))
     print('- FRAME_HEIGHT : ' + str(FRAME_HEIGHT))
@@ -91,12 +88,10 @@ def initial_setting():
     print(' ')
 
 
-'''
 def camera_connect_waiting():
-    while True:
-        dir="./connect"
-        rows=sum(os.path.isfile(os.path.join(dir, name)) for name in os.listdir(dir))
-        if rows==len(captures_ID):
+    while True: 
+        global connect_num, camera_num
+        if connect_num==camera_num:
             f = open('waiting.txt', 'w')
             f.write('OK')
             f.close()
@@ -104,7 +99,7 @@ def camera_connect_waiting():
         time.sleep(0.1)
     print("-------------------")
     print("All connected.")
-'''
+
 
 
 def set_multithread(target):
@@ -117,22 +112,22 @@ def set_multithread(target):
 
 def mode_movie():
     set_multithread(camera_capture_movie)
-    #camera_connect_waiting()
+    camera_connect_waiting()
     print(" ")
-    print("c = capture, esc = exit")
-    print(" ")
+    print("mode: movie")
+    print("c = capture start, esc = exit")
 
     while True:
         if keyboard.read_key() == "c":
-            print("Push c -> capture")
-            time0=time.time()
+            print("Push c -> [ capture start ]")
             f = open('waiting.txt', 'w')
             f.write("c")
             f.close()
+            print("esc = capture finish")
             break
     while True:
         if keyboard.read_key() == "esc":
-            print("Push esc -> exit")
+            print("Push esc -> [ exit ]")
             f = open('waiting.txt', 'w')
             f.write("esc")
             f.close()
@@ -141,12 +136,12 @@ def mode_movie():
 
 def mode_picture():
     set_multithread(camera_capture_picture)
-    #camera_connect_waiting()
+    camera_connect_waiting()
     print(" ")
-    print("c = capture, esc = exit")
-    print(" ")
+    print("mode: picture")
 
     while True:
+        print("c = capture, esc = exit")
         if keyboard.read_key() == "c":
             f = open('waiting.txt', 'w')
             f.write("c")
@@ -160,14 +155,14 @@ def mode_picture():
             f.write("esc")
             f.close()
             break
-        time.sleep(2)
+        time.sleep(1.2)
 
 
 def camera_setting(cap):
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
-    cap.set(cv2.CAP_PROP_FPS, FRAME_FPS)
-    cap.set(cv2.CAP_PROP_BRIGHTNESS, FRAME_BRIGHT)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, int(FRAME_WIDTH))
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, int(FRAME_HEIGHT))
+    cap.set(cv2.CAP_PROP_FPS, int(FRAME_FPS))
+    cap.set(cv2.CAP_PROP_BRIGHTNESS, int(FRAME_BRIGHT))
     #camera_setting_show(cap)
 
 
@@ -188,9 +183,13 @@ def camera_capture_movie(ID, captures, lock, ):
     # connect
     captures[ID] = cv2.VideoCapture(ID) #(ID,cv2.CAP_DSHOW) 
     if captures[ID].isOpened():
-        print("ID: " + str(ID) + " -> Connected")
+        with lock:
+            print("ID: " + str(ID) + " -> Connected")
+            global connect_num
+            connect_num=connect_num+1
     else:
-        print("ID: " + str(ID) + " -> Failed")
+        with lock:
+            print("ID: " + str(ID) + " -> Failed")
 
     # camera setting
     camera_setting(captures[ID])
@@ -202,11 +201,8 @@ def camera_capture_movie(ID, captures, lock, ):
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')        # fourcc - mp4
     video = cv2.VideoWriter('capture/video_' + str(ID) + '.mp4', fourcc, fps, (w, h))  # filename, fourcc, fps, size
 
-    with lock:
-        print("\033[" + str(CameraNum-ID+1) + "A")
-        print(str(ID) + ": Connected")
-        print("\033[4A")
-        print("\033[" + str(CameraNum-ID+1) + "B")
+    # wait
+    wait_setting()
 
     # wait
     while True: 
@@ -235,18 +231,19 @@ def camera_capture_picture(ID, captures, lock):
     # connect
     captures[ID] = cv2.VideoCapture(ID) #(ID,cv2.CAP_DSHOW) 
     if captures[ID].isOpened():
-        print("ID: " + str(ID) + " -> Connected")
+        with lock:
+            print("ID: " + str(ID) + " -> Connected")
+            global connect_num
+            connect_num=connect_num+1
     else:
-        print("ID: " + str(ID) + " -> Failed")
+        with lock:
+            print("ID: " + str(ID) + " -> Failed")
 
     # camera setting
     camera_setting(captures[ID])
 
-    with lock:
-        print("\033[" + str(CameraNum-ID+1) + "A")
-        print(str(ID) + ": Connected")
-        print("\033[4A")
-        print("\033[" + str(CameraNum-ID+1) + "B")
+    # wait
+    wait_setting()
 
     # capture
     n=0
@@ -264,6 +261,16 @@ def camera_capture_picture(ID, captures, lock):
         elif data == 'esc':
             break
     captures[ID].release()
+
+
+def wait_setting():
+    while True: 
+        f = open('waiting.txt', 'r')
+        data = f.read()
+        f.close()
+        if(data=='OK'):
+            break
+        time.sleep(0.1) # waiting
 
 
 def detection():
