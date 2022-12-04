@@ -348,12 +348,12 @@ def UDP_initial():
     local_adress_list=local_address_ex[2]
     local_address=local_adress_list[-1]
     print("UDP setting")
-    print("IPv4_address      : " + str(local_address))
+    print("- IPv4_address      : " + str(local_address))
     
     multicast_group = '239.255.0.1'
     port = 4000
     bufsize = 4096
-    print("multicast_address : " + str(multicast_group))
+    print("- multicast_address : " + str(multicast_group))
     print(" ")
 
     sock=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
