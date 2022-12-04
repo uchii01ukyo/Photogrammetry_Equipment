@@ -45,7 +45,7 @@ def main():
 
 
     print("--- 3. connection ---")
-    print("Connecting ... " + str(CameraNum))
+    print("Connecting ... " + str(camera_num))
 
     # mode
     if(MODE=='movie'):
