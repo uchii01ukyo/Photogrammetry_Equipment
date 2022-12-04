@@ -153,10 +153,10 @@ def mode_picture():
 
 
 def camera_setting(cap):
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
-    cap.set(cv2.CAP_PROP_FPS, FRAME_FPS)
-    cap.set(cv2.CAP_PROP_BRIGHTNESS, FRAME_BRIGHT)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, int(FRAME_WIDTH))
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, int(FRAME_HEIGHT))
+    cap.set(cv2.CAP_PROP_FPS, int(FRAME_FPS))
+    cap.set(cv2.CAP_PROP_BRIGHTNESS, int(FRAME_BRIGHT))
     #camera_setting_show(cap)
  
 
